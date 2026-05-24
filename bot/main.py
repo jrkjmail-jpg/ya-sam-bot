@@ -6,6 +6,7 @@ from aiogram.fsm.storage.memory import MemoryStorage
 
 from bot.handlers import goal, instruction, photo, start
 from config.settings import get_settings
+from database.session import create_db
 
 
 async def main() -> None:
@@ -15,6 +16,7 @@ async def main() -> None:
         raise RuntimeError("TELEGRAM_BOT_TOKEN is required to run the bot")
 
     logging.basicConfig(level=logging.INFO)
+    create_db()
     bot = Bot(token=bot_token)
     dp = Dispatcher(storage=MemoryStorage())
     dp.include_router(start.router)

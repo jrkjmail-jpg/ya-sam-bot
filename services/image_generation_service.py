@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from io import BytesIO
+import logging
 from textwrap import wrap
 
 from PIL import Image, ImageDraw, ImageFont
@@ -8,6 +9,9 @@ from PIL import Image, ImageDraw, ImageFont
 from config.settings import get_settings
 from services.openai_service import openai_service
 from services.storage_service import storage_service
+
+
+logger = logging.getLogger(__name__)
 
 
 class ImageGenerationService:
@@ -18,7 +22,14 @@ class ImageGenerationService:
             if settings.ai_is_mocked:
                 image_bytes = self._placeholder_card(step)
             else:
-                image_bytes = openai_service.generate_step_image(source_image_url, step["visual_prompt"])
+                try:
+                    image_bytes = openai_service.generate_step_image(source_image_url, step["visual_prompt"])
+                except Exception:
+                    logger.exception(
+                        "OpenAI image generation failed for step %s; using fallback card",
+                        step.get("step_number"),
+                    )
+                    image_bytes = self._placeholder_card(step)
             image_url = storage_service.save_bytes(image_bytes, "generated", ".png")
             results.append({"step_number": step["step_number"], "image_url": image_url})
         return results

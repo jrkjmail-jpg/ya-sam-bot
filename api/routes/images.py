@@ -1,4 +1,5 @@
 from pathlib import Path
+import logging
 
 from fastapi import APIRouter, Depends, File, Form, UploadFile
 from sqlalchemy.orm import Session
@@ -25,6 +26,7 @@ from services.storage_service import storage_service
 
 
 router = APIRouter(tags=["images"])
+logger = logging.getLogger(__name__)
 
 
 @router.post("/upload-image", response_model=UploadImageResponse)

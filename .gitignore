@@ -1,0 +1,15 @@
+.env
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+yasam.db
+storage/photos/*
+storage/generated/*
+storage/collages/*
+!storage/photos/.gitkeep
+!storage/generated/.gitkeep
+!storage/collages/.gitkeep

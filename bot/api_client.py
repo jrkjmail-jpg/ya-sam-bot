@@ -45,31 +45,31 @@ class BackendClient:
                 response = await client.post(f"{self.base_url}/upload-image", data=form, files=files)
                 response.raise_for_status()
                 return response.json()
-        except httpx.RequestError:
+        except httpx.HTTPError:
             return self._local_upload_image(user_id, data, filename, image_type, session_id)
 
     async def analyze(self, payload: dict) -> dict:
         try:
             return await self._post("/analyze", payload, timeout=120)
-        except httpx.RequestError:
+        except httpx.HTTPError:
             return self._local_analyze(payload)
 
     async def generate_instruction(self, payload: dict) -> dict:
         try:
             return await self._post("/generate-instruction", payload, timeout=180)
-        except httpx.RequestError:
+        except httpx.HTTPError:
             return self._local_generate_instruction(payload)
 
     async def generate_images(self, payload: dict) -> dict:
         try:
             return await self._post("/generate-images", payload, timeout=600)
-        except httpx.RequestError:
+        except httpx.HTTPError:
             return self._local_generate_images(payload)
 
     async def create_collage(self, payload: dict) -> dict:
         try:
             return await self._post("/create-collage", payload, timeout=180)
-        except httpx.RequestError:
+        except httpx.HTTPError:
             return self._local_create_collage(payload)
 
     async def history(self, user_id: int) -> list[dict]:
@@ -78,7 +78,7 @@ class BackendClient:
                 response = await client.get(f"{self.base_url}/instructions/{user_id}")
                 response.raise_for_status()
                 return response.json()
-        except httpx.RequestError:
+        except httpx.HTTPError:
             return self._local_history(user_id)
 
     async def _post(self, path: str, payload: dict, timeout: int) -> dict:

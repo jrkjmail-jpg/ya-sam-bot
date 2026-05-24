@@ -1,4 +1,5 @@
 from functools import lru_cache
+import os
 from pathlib import Path
 
 from pydantic import Field
@@ -38,6 +39,13 @@ class Settings(BaseSettings):
     @property
     def effective_telegram_bot_token(self) -> str:
         return self.telegram_bot_token or self.bot_token
+
+    @property
+    def effective_api_base_url(self) -> str:
+        port = os.getenv("PORT")
+        if port and self.api_base_url.rstrip("/") in {"http://localhost:8000", "http://127.0.0.1:8000"}:
+            return f"http://127.0.0.1:{port}"
+        return self.api_base_url
 
     @property
     def normalized_database_url(self) -> str:

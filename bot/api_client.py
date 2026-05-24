@@ -8,7 +8,7 @@ from config.settings import get_settings
 class BackendClient:
     def __init__(self) -> None:
         self.settings = get_settings()
-        self.base_url = self.settings.api_base_url.rstrip("/")
+        self.base_url = self.settings.effective_api_base_url.rstrip("/")
 
     async def upload_image(
         self,

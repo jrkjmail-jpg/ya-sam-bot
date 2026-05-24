@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     api_base_url: str = Field(default="http://localhost:8000", alias="API_BASE_URL")
 
     openai_text_model: str = Field(default="gpt-5.5", alias="OPENAI_TEXT_MODEL")
-    openai_image_model: str = Field(default="gpt-image-1.5", alias="OPENAI_IMAGE_MODEL")
+    openai_image_model: str = Field(default="gpt-image-2", alias="OPENAI_IMAGE_MODEL")
     use_mock_ai: bool = Field(default=False, alias="USE_MOCK_AI")
 
     storage_dir: Path = Field(default=BASE_DIR / "storage", alias="STORAGE_DIR")

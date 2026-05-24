@@ -45,7 +45,7 @@ STORAGE_BUCKET=yasam
 
 ```env
 OPENAI_TEXT_MODEL=gpt-5.5
-OPENAI_IMAGE_MODEL=gpt-image-1.5
+OPENAI_IMAGE_MODEL=gpt-image-2
 ```
 
 Для первого smoke test можно временно включить:

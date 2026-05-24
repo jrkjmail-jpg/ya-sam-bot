@@ -24,6 +24,8 @@ cp .env.example .env
 
 ```env
 TELEGRAM_BOT_TOKEN=токен_бота
+# Если хостинг сам передает токен как BOT_TOKEN, можно заполнить BOT_TOKEN вместо TELEGRAM_BOT_TOKEN.
+BOT_TOKEN=
 OPENAI_API_KEY=ключ_openai
 DATABASE_URL=sqlite:///./yasam.db
 API_BASE_URL=http://localhost:8000

@@ -10,11 +10,12 @@ from config.settings import get_settings
 
 async def main() -> None:
     settings = get_settings()
-    if not settings.telegram_bot_token:
+    bot_token = settings.effective_telegram_bot_token
+    if not bot_token:
         raise RuntimeError("TELEGRAM_BOT_TOKEN is required to run the bot")
 
     logging.basicConfig(level=logging.INFO)
-    bot = Bot(token=settings.telegram_bot_token)
+    bot = Bot(token=bot_token)
     dp = Dispatcher(storage=MemoryStorage())
     dp.include_router(start.router)
     dp.include_router(instruction.router)

@@ -25,6 +25,8 @@
 
 ```env
 TELEGRAM_BOT_TOKEN=123456:telegram_token
+# Если хостинг сам передает токен как BOT_TOKEN, можно использовать BOT_TOKEN.
+BOT_TOKEN=123456:telegram_token
 OPENAI_API_KEY=sk-...
 DATABASE_URL=postgresql+psycopg://user:password@host:5432/db
 API_BASE_URL=https://your-api-domain.com

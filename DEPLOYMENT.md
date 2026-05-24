@@ -44,7 +44,7 @@ STORAGE_BUCKET=yasam
 Модели:
 
 ```env
-OPENAI_TEXT_MODEL=gpt-5.2
+OPENAI_TEXT_MODEL=gpt-5.5
 OPENAI_IMAGE_MODEL=gpt-image-1.5
 ```
 

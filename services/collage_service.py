@@ -5,6 +5,7 @@ from textwrap import wrap
 
 from PIL import Image, ImageDraw, ImageFont
 
+from services.font_service import load_font
 from services.storage_service import storage_service
 
 
@@ -13,9 +14,9 @@ class CollageService:
         width, height = 1400, 1800
         collage = Image.new("RGB", (width, height), "#0d0f13")
         draw = ImageDraw.Draw(collage)
-        font_title = ImageFont.load_default(size=66)
-        font_logo = ImageFont.load_default(size=34)
-        font_caption = ImageFont.load_default(size=28)
+        font_title = load_font(66, bold=True)
+        font_logo = load_font(34, bold=True)
+        font_caption = load_font(28)
 
         draw.text((70, 55), "Я сам", fill="#7de7ff", font=font_logo)
         draw.text((70, 105), "\n".join(wrap(title, width=28)[:2]), fill="#ffffff", font=font_title)

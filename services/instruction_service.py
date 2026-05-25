@@ -7,23 +7,47 @@ from services.safety import looks_potentially_dangerous
 
 
 class InstructionService:
-    def generate(self, image_url: str, user_goal: str, confirmed_details: str | None = None) -> dict:
+    def generate(
+        self,
+        image_url: str,
+        user_goal: str,
+        confirmed_details: str | None = None,
+        analysis: dict | None = None,
+    ) -> dict:
         settings = get_settings()
         if looks_potentially_dangerous(f"{user_goal} {confirmed_details or ''}"):
             return self._normalize_instruction(self._safe_alternative(user_goal), user_goal)
         if settings.ai_is_mocked:
-            return self._normalize_instruction(self._mock_instruction(user_goal), user_goal)
+            return self._normalize_instruction(self._mock_instruction(user_goal), user_goal, analysis)
 
-        instruction = openai_service.generate_instruction(image_url, user_goal, confirmed_details)
-        instruction = self._normalize_instruction(instruction, user_goal)
+        instruction = openai_service.generate_instruction(image_url, user_goal, confirmed_details, analysis)
+        instruction = self._normalize_instruction(instruction, user_goal, analysis)
         return instruction
 
-    def _normalize_instruction(self, instruction: dict, user_goal: str) -> dict:
-        instruction.setdefault("title", "Как сделать самому")
+    def _normalize_instruction(self, instruction: dict, user_goal: str, analysis: dict | None = None) -> dict:
+        analysis = analysis or {}
+        object_name = (
+            analysis.get("product_name")
+            or analysis.get("detected_object")
+            or analysis.get("object_signature")
+            or "объект"
+        )
+        visual_reference = analysis.get("visual_reference_prompt") or object_name
+        manual_summary = analysis.get("real_instruction_summary") or ""
+        instruction.setdefault("title", f"Как сделать самому: {object_name}")
         instruction.setdefault("short_summary", f"Пошаговая инструкция для задачи: {user_goal}.")
         instruction.setdefault("suitable_for", "Для бытового безопасного использования")
         instruction.setdefault("safety_notes", [])
         instruction.setdefault("extra_sections", [])
+        instruction["instruction_target"] = object_name
+        instruction["object_reference"] = {
+            "name": object_name,
+            "brand": analysis.get("brand"),
+            "model": analysis.get("model"),
+            "match_status": analysis.get("match_status"),
+            "visual_reference_prompt": visual_reference,
+            "real_instruction_summary": manual_summary,
+        }
         steps = instruction.get("steps", [])[:6]
         normalized_steps = []
         for index, step in enumerate(steps, start=1):
@@ -40,13 +64,18 @@ class InstructionService:
             step.setdefault(
                 "visual_spec",
                 {
-                    "main_object": "объект с исходного фото",
+                    "main_object": visual_reference,
                     "scene": "чистый фон",
                     "composition": step["camera_angle"],
-                    "required_elements": ["объект похож на исходное фото"],
+                    "required_elements": [f"использовать только визуальную модель: {visual_reference}"],
                     "action": step["description"],
                     "highlight": step["visual_highlight"],
-                    "avoid": ["не менять объект", "не добавлять лишние элементы"],
+                    "avoid": [
+                        "не копировать исходное фото пользователя",
+                        "не использовать фон и окружение исходного фото",
+                        "не менять объект",
+                        "не добавлять лишние элементы",
+                    ],
                 },
             )
             step.setdefault("image_prompt", self._build_image_prompt(step))

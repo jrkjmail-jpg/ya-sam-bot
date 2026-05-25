@@ -21,7 +21,7 @@ class ImageGenerationService:
         results: list[dict] = []
         for step in steps:
             if settings.ai_is_mocked:
-                image_bytes = self._placeholder_card(step, source_image_url)
+                image_bytes = self._placeholder_card(step)
             else:
                 try:
                     image_bytes = openai_service.generate_step_image(
@@ -33,7 +33,7 @@ class ImageGenerationService:
                         "OpenAI image generation failed for step %s; using fallback card",
                         step.get("step_number"),
                     )
-                    image_bytes = self._placeholder_card(step, source_image_url)
+                    image_bytes = self._placeholder_card(step)
             image_url = storage_service.save_bytes(image_bytes, "generated", ".png")
             results.append({"step_number": step["step_number"], "image_url": image_url})
         return results
@@ -61,7 +61,7 @@ class ImageGenerationService:
         )
 
     @staticmethod
-    def _placeholder_card(step: dict, source_image_url: str | None = None) -> bytes:
+    def _placeholder_card(step: dict) -> bytes:
         width, height = 1024, 1024
         image = Image.new("RGB", (width, height), "#f7f5ff")
         draw = ImageDraw.Draw(image)
@@ -79,15 +79,7 @@ class ImageGenerationService:
         object_box = (96, 230, 928, 682)
         draw.rounded_rectangle(object_box, radius=34, fill="#fbfbff", outline="#efeafb", width=2)
 
-        source_image = ImageGenerationService._load_source_preview(source_image_url)
-        if source_image:
-            source_image.thumbnail((770, 410))
-            paste_x = 512 - source_image.width // 2
-            paste_y = 456 - source_image.height // 2
-            image.paste(source_image, (paste_x, paste_y))
-            draw.rounded_rectangle(object_box, radius=34, outline="#efeafb", width=2)
-        else:
-            draw.rounded_rectangle((230, 315, 794, 590), radius=34, fill="#f0eef8", outline="#ddd6fe", width=2)
+        ImageGenerationService._draw_object_model(draw, step, object_box)
 
         ImageGenerationService._draw_instruction_marks(draw, step.get("step_number", 1))
 
@@ -127,17 +119,21 @@ class ImageGenerationService:
                 draw.line((x, 300, x - 34, 260), fill=violet, width=7)
 
     @staticmethod
-    def _load_source_preview(source_image_url: str | None) -> Image.Image | None:
-        if not source_image_url:
-            return None
-        data = storage_service.get_bytes_if_local(source_image_url)
-        if not data:
-            return None
-        try:
-            return Image.open(BytesIO(data)).convert("RGB")
-        except Exception:
-            logger.exception("Could not load source image preview for fallback card")
-            return None
+    def _draw_object_model(draw: ImageDraw.ImageDraw, step: dict, object_box: tuple[int, int, int, int]) -> None:
+        visual_spec = step.get("visual_spec") or {}
+        object_text = visual_spec.get("main_object") or "визуальная модель объекта"
+        font_small = load_font(22)
+
+        draw.rounded_rectangle((230, 315, 794, 590), radius=42, fill="#f0eef8", outline="#ddd6fe", width=2)
+        draw.rounded_rectangle((325, 370, 700, 540), radius=70, fill="#ffffff", outline="#c4b5fd", width=5)
+        draw.ellipse((272, 388, 360, 476), fill="#ede9fe", outline="#7c3aed", width=4)
+        draw.ellipse((666, 388, 754, 476), fill="#dff7ff", outline="#38bdf8", width=4)
+        draw.rounded_rectangle((435, 300, 590, 370), radius=36, fill="#dff7ff", outline="#38bdf8", width=4)
+
+        y = object_box[3] - 70
+        for line in wrap(object_text, width=48)[:2]:
+            draw.text((512, y), line, fill="#6b5f90", font=font_small, anchor="mm")
+            y += 28
 
 
 image_generation_service = ImageGenerationService()

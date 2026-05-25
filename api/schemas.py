@@ -24,6 +24,16 @@ class IdentifyObjectRequest(BaseModel):
 class AnalyzeResponse(BaseModel):
     detected_object: str
     object_category: str | None = None
+    brand: str | None = None
+    model: str | None = None
+    product_name: str | None = None
+    match_status: str | None = None
+    exact_match_confidence: float | None = Field(default=None, ge=0, le=1)
+    candidate_models: list[str] = Field(default_factory=list)
+    object_signature: str | None = None
+    visual_reference_prompt: str | None = None
+    real_instruction_summary: str | None = None
+    source_notes: list[str] = Field(default_factory=list)
     user_goal: str
     confidence: float = Field(ge=0, le=1)
     visible_parts: list[str] = Field(default_factory=list)
@@ -73,6 +83,8 @@ class GenerateInstructionRequest(BaseModel):
 class GenerateInstructionResponse(BaseModel):
     title: str
     short_summary: str
+    instruction_target: str | None = None
+    object_reference: dict | None = None
     suitable_for: str | None = None
     safety_notes: list[str] = Field(default_factory=list)
     steps: list[InstructionStep]

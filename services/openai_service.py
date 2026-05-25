@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import json
+import logging
 import re
 from pathlib import Path
 from typing import Any
@@ -10,6 +11,9 @@ from openai import OpenAI
 
 from config.settings import BASE_DIR, get_settings
 from services.storage_service import storage_service
+
+
+logger = logging.getLogger(__name__)
 
 
 def _read_prompt(name: str) -> str:
@@ -42,23 +46,34 @@ class OpenAIService:
                 "content": content,
             }
         ]
-        return self._json_response(input_payload, "yasam_object_analysis")
+        return self._json_response(input_payload, "yasam_object_analysis", use_web_search=True)
 
-    def generate_instruction(self, image_url: str, user_goal: str, confirmed_details: str | None) -> dict[str, Any]:
+    def generate_instruction(
+        self,
+        image_url: str,
+        user_goal: str,
+        confirmed_details: str | None,
+        analysis: dict | None = None,
+    ) -> dict[str, Any]:
         if not self.client:
             raise RuntimeError("OpenAI API key is not configured")
 
         prompt = _read_prompt("generate_instruction_prompt.txt")
         details = confirmed_details or "Дополнительных уточнений нет."
+        analysis_text = json.dumps(analysis or {}, ensure_ascii=False)
         input_payload = [
             {
                 "role": "user",
                 "content": [
                     {
                         "type": "input_text",
-                        "text": f"{prompt}\n\nЦель пользователя: {user_goal}\nУточнения: {details}",
-                    },
-                    {"type": "input_image", "image_url": self._image_input(image_url)},
+                        "text": (
+                            f"{prompt}\n\n"
+                            f"Цель пользователя: {user_goal}\n"
+                            f"Подтверждение/уточнения: {details}\n"
+                            f"Глубокий анализ объекта и найденной информации: {analysis_text}"
+                        ),
+                    }
                 ],
             }
         ]
@@ -84,7 +99,6 @@ class OpenAIService:
                     "role": "user",
                     "content": [
                         {"type": "input_text", "text": f"{style}\n\nСцена шага: {visual_prompt}"},
-                        {"type": "input_image", "image_url": self._image_input(source_image_url)},
                     ],
                 }
             ],
@@ -95,18 +109,36 @@ class OpenAIService:
                 return base64.b64decode(output.result)
         raise RuntimeError("OpenAI did not return a generated image")
 
-    def _json_response(self, input_payload: list[dict[str, Any]], schema_name: str) -> dict[str, Any]:
+    def _json_response(
+        self,
+        input_payload: list[dict[str, Any]],
+        schema_name: str,
+        use_web_search: bool = False,
+    ) -> dict[str, Any]:
         assert self.client is not None
         try:
-            response = self.client.responses.create(
-                model=self.settings.openai_text_model,
-                input=input_payload,
-                text={"format": {"type": "json_object"}},
-            )
+            request: dict[str, Any] = {
+                "model": self.settings.openai_text_model,
+                "input": input_payload,
+                "text": {"format": {"type": "json_object"}},
+            }
+            if use_web_search:
+                request["tools"] = [{"type": "web_search"}]
+                request["tool_choice"] = "auto"
+            response = self.client.responses.create(**request)
         except TypeError:
             response = self.client.responses.create(
                 model=self.settings.openai_text_model,
                 input=input_payload,
+            )
+        except Exception:
+            if not use_web_search:
+                raise
+            logger.exception("OpenAI web search analysis failed; retrying without web search")
+            response = self.client.responses.create(
+                model=self.settings.openai_text_model,
+                input=input_payload,
+                text={"format": {"type": "json_object"}},
             )
 
         text = getattr(response, "output_text", None) or ""

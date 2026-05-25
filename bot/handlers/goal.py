@@ -15,16 +15,30 @@ router = Router()
 @router.message(InstructionFlow.waiting_object_confirmation, F.text)
 async def handle_object_confirmation(message: Message, state: FSMContext) -> None:
     answer = message.text.strip().lower()
+    data = await state.get_data()
+    analysis = data.get("object_analysis") or {}
+    detected_object = analysis.get("product_name") or analysis.get("detected_object") or data.get("detected_object") or "объект"
     if answer.startswith("да"):
+        await state.update_data(
+            confirmed_details=(
+                f"Пользователь подтвердил объект: {detected_object}. "
+                "Использовать найденную модель и ее ключевые признаки как основу инструкции."
+            )
+        )
         await state.set_state(InstructionFlow.waiting_goal)
         await message.answer("Отлично. Что вы хотите сделать с этим?", reply_markup=ReplyKeyboardRemove())
         return
 
     if "не знаю" in answer:
-        await state.update_data(confirmed_details="Пользователь не уверен, что это за объект. Не делать рискованных предположений.")
+        await state.update_data(
+            confirmed_details=(
+                f"Пользователь не уверен в названии. Использовать самый вероятный найденный вариант: {detected_object}. "
+                "Не менять визуальную модель объекта и не добавлять непроверенные функции."
+            )
+        )
         await state.set_state(InstructionFlow.waiting_goal)
         await message.answer(
-            "Хорошо. Тогда я буду осторожнее и не стану выдумывать детали. Что вы хотите сделать?",
+            "Хорошо. Возьму самый похожий вариант и буду аккуратен с деталями. Что вы хотите сделать?",
             reply_markup=ReplyKeyboardRemove(),
         )
         return
@@ -55,6 +69,7 @@ async def handle_goal(message: Message, state: FSMContext) -> None:
     user_goal = message.text.strip()
     await state.update_data(user_goal=user_goal)
     await message.answer("Анализирую объект…")
+    await message.answer("Проверяю важные детали…")
     analysis = await backend_client.analyze(
         {
             "user_id": message.from_user.id,
@@ -64,6 +79,7 @@ async def handle_goal(message: Message, state: FSMContext) -> None:
             "session_id": session_id,
         }
     )
+    await state.update_data(object_analysis=analysis, detected_object=analysis.get("product_name") or analysis.get("detected_object"))
 
     if analysis["needs_clarification"] or not analysis["can_generate_instruction"]:
         await state.set_state(InstructionFlow.waiting_clarification)

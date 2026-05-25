@@ -35,6 +35,7 @@ def generate_instruction(payload: GenerateInstructionRequest, db: Session = Depe
         payload.image_url,
         payload.user_goal,
         payload.confirmed_details,
+        payload.analysis,
     )
 
     if payload.session_id:

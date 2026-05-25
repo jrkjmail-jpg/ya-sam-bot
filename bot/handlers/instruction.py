@@ -34,6 +34,7 @@ async def generate_and_send_instruction(message: Message, state: FSMContext) -> 
     user_goal = data["user_goal"]
     session_id = data["session_id"]
     confirmed_details = data.get("confirmed_details")
+    object_analysis = data.get("object_analysis")
 
     await message.answer("Уточняю, как лучше показать шаги…")
     instruction = await backend_client.generate_instruction(
@@ -41,6 +42,7 @@ async def generate_and_send_instruction(message: Message, state: FSMContext) -> 
             "user_id": message.from_user.id,
             "image_url": image_url,
             "user_goal": user_goal,
+            "analysis": object_analysis,
             "confirmed_details": confirmed_details,
             "session_id": session_id,
         }

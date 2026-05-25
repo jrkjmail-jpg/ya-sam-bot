@@ -27,7 +27,8 @@ async def handle_photo(message: Message, state: FSMContext) -> None:
         media_group_tasks[task_key] = asyncio.create_task(_process_media_group(message, state, task_key))
         return
 
-    await message.answer("Понял. Сейчас внимательно посмотрю фото и определю объект.")
+    await message.answer("Понял. Сейчас внимательно определю объект.")
+    await message.answer("Проверяю важные детали…")
     await _store_photo(message, state)
     await _identify_and_ask_confirmation(message, state)
 
@@ -36,6 +37,7 @@ async def _process_media_group(message: Message, state: FSMContext, task_key: st
     try:
         await asyncio.sleep(MEDIA_GROUP_DELAY_SECONDS)
         await message.answer("Получил несколько фото. Анализирую их как один объект…")
+        await message.answer("Проверяю важные детали…")
         await _identify_and_ask_confirmation(message, state)
     finally:
         media_group_tasks.pop(task_key, None)
@@ -80,14 +82,20 @@ async def _identify_and_ask_confirmation(message: Message, state: FSMContext) ->
             "session_id": data.get("session_id"),
         }
     )
-    detected_object = analysis.get("detected_object") or "предмет на фото"
+    detected_object = analysis.get("product_name") or analysis.get("detected_object") or "предмет на фото"
+    match_status = analysis.get("match_status")
+    candidates = analysis.get("candidate_models") or []
     confidence = analysis.get("confidence")
     await state.update_data(detected_object=detected_object, object_analysis=analysis)
     await state.set_state(InstructionFlow.waiting_object_confirmation)
 
     confidence_text = f" Уверенность: {round(confidence * 100)}%." if isinstance(confidence, (int, float)) else ""
+    prefix = "Я определил объект" if match_status == "exact" else "Самый похожий вариант"
+    candidates_text = ""
+    if candidates:
+        candidates_text = "\n\nПохожие варианты: " + "; ".join(candidates[:3])
     await message.answer(
-        f"Похоже, главный объект: {detected_object}.{confidence_text}\n\nЭто тот объект, для которого нужна инструкция?",
+        f"{prefix}: {detected_object}.{confidence_text}{candidates_text}\n\nЭто тот объект, для которого нужна инструкция?",
         reply_markup=object_confirmation_keyboard(),
     )
 

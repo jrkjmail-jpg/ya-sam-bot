@@ -53,12 +53,7 @@ class CollageService:
         draw.text((x + 41, y + 39), "Я", fill="#ffffff", font=font_small, anchor="mm")
 
         self._bubble(draw, x + 30, y + 95, 230, 94, "Привет!\nЯ помогу разобраться\nс вашим предметом.", font_body)
-        image = self._load_image(original_image_url)
-        if image:
-            image.thumbnail((250, 230))
-            ix, iy = x + 78, y + 215
-            draw.rounded_rectangle((ix - 8, iy - 8, ix + image.width + 8, iy + image.height + 8), radius=22, fill="#f3f4f6")
-            canvas.paste(image, (ix, iy))
+        self._draw_reference_tile(draw, x + 74, y + 215, 252, 220, instruction_plan, font_small)
 
         self._bubble(draw, x + 86, y + 472, 240, 50, "Как сделать самому?", font_body, outgoing=True)
         detected = (instruction_plan or {}).get("title") or "Инструкция готова"
@@ -138,10 +133,7 @@ class CollageService:
 
         draw.text((54, y + 30), "Мои предметы", fill="#111827", font=font_h2)
         draw.text((54, y + 58), "Ваши сохраненные инструкции", fill="#6b7280", font=font_small)
-        image = self._load_image(original_image_url)
-        if image:
-            image.thumbnail((84, 84))
-            canvas.paste(image, (54, y + 96))
+        self._draw_reference_tile(draw, 54, y + 94, 84, 84, instruction_plan, font_small)
         draw.text((154, y + 104), ((instruction_plan or {}).get("title") or "Новая инструкция")[:25], fill="#111827", font=font_body)
         draw.rounded_rectangle((154, y + 152, 330, y + 194), radius=16, fill="#7c3aed")
         draw.text((242, y + 173), "Открыть инструкцию", fill="#ffffff", font=font_small, anchor="mm")
@@ -178,6 +170,39 @@ class CollageService:
         if not data:
             return None
         return Image.open(BytesIO(data)).convert("RGB")
+
+    @staticmethod
+    def _draw_reference_tile(
+        draw: ImageDraw.ImageDraw,
+        x: int,
+        y: int,
+        w: int,
+        h: int,
+        instruction_plan: dict | None,
+        font_small,
+    ) -> None:
+        reference = ((instruction_plan or {}).get("object_reference") or {}).get("visual_reference_prompt")
+        name = (instruction_plan or {}).get("instruction_target") or ((instruction_plan or {}).get("title") or "предмет")
+        draw.rounded_rectangle((x, y, x + w, y + h), radius=22, fill="#f8fafc", outline="#e5e7eb", width=2)
+        cx, cy = x + w // 2, y + h // 2 - 12
+        body_w = min(140, max(50, w - 64))
+        body_h = min(78, max(36, h - 44))
+        side = max(14, min(42, w // 6))
+        stroke = 4 if w >= 150 else 2
+        draw.rounded_rectangle(
+            (cx - body_w // 2, cy - body_h // 2, cx + body_w // 2, cy + body_h // 2),
+            radius=max(16, body_h // 2),
+            fill="#ffffff",
+            outline="#c4b5fd",
+            width=stroke,
+        )
+        draw.ellipse((x + 12, cy - side // 2, x + 12 + side, cy + side // 2), fill="#ede9fe", outline="#7c3aed", width=stroke)
+        draw.ellipse((x + w - 12 - side, cy - side // 2, x + w - 12, cy + side // 2), fill="#dff7ff", outline="#38bdf8", width=stroke)
+        label = reference or name
+        text_y = y + h - 45
+        for line in wrap(label, width=max(12, w // 11))[:2]:
+            draw.text((x + 12, text_y), line, fill="#6b7280", font=font_small)
+            text_y += 15
 
     @staticmethod
     def _extract_step_visual(image: Image.Image) -> Image.Image:

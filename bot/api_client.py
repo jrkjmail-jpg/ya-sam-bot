@@ -151,6 +151,7 @@ class BackendClient:
             payload["image_url"],
             payload["user_goal"],
             payload.get("confirmed_details"),
+            payload.get("analysis"),
         )
         session_id = payload.get("session_id")
         if session_id:

@@ -133,11 +133,12 @@ class OpenAIService:
             request: dict[str, Any] = {
                 "model": self.settings.openai_text_model,
                 "input": input_payload,
-                "text": {"format": {"type": "json_object"}},
             }
             if use_web_search:
                 request["tools"] = [{"type": "web_search"}]
                 request["tool_choice"] = "auto"
+            else:
+                request["text"] = {"format": {"type": "json_object"}}
             response = self.client.responses.create(**request)
         except TypeError:
             response = self.client.responses.create(

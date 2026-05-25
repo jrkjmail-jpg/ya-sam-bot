@@ -53,6 +53,11 @@ def generate_instruction(payload: GenerateInstructionRequest, db: Session = Depe
     return instruction
 
 
+@router.post("/generate-plan", response_model=GenerateInstructionResponse)
+def generate_plan(payload: GenerateInstructionRequest, db: Session = Depends(get_db)) -> dict:
+    return generate_instruction(payload, db)
+
+
 @router.get("/instructions/{user_id}", response_model=list[InstructionHistoryItem])
 def instructions_history(user_id: int, db: Session = Depends(get_db)) -> list[dict]:
     user = upsert_user(db, telegram_id=user_id)

@@ -68,7 +68,7 @@ class OpenAIService:
         if not self.client:
             raise RuntimeError("OpenAI API key is not configured")
 
-        style = _read_prompt("image_prompt_style.txt")
+        style = f"{_read_prompt('image_prompt_style.txt')}\n\n{_read_prompt('step_image_prompt.txt')}"
         image_tool = {
             "type": "image_generation",
             "action": "auto",

@@ -167,7 +167,8 @@ class BackendClient:
         return instruction
 
     def _local_generate_images(self, payload: dict) -> dict:
-        steps = payload["instruction"]["steps"]
+        instruction = payload.get("instruction_plan") or payload["instruction"]
+        steps = instruction["steps"]
         step_images = image_generation_service.generate_step_images(payload["image_url"], steps)
         session_id = payload.get("session_id")
         if session_id:
@@ -177,7 +178,12 @@ class BackendClient:
         return {"step_images": step_images}
 
     def _local_create_collage(self, payload: dict) -> dict:
-        collage_url = collage_service.create_collage(payload["title"], payload["step_images"])
+        collage_url = collage_service.create_collage(
+            payload["title"],
+            payload["step_images"],
+            instruction_plan=payload.get("instruction_plan"),
+            original_image_url=payload.get("object_image_url"),
+        )
         session_id = payload.get("session_id")
         if session_id:
             with SessionLocal() as db:

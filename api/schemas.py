@@ -23,8 +23,11 @@ class IdentifyObjectRequest(BaseModel):
 
 class AnalyzeResponse(BaseModel):
     detected_object: str
+    object_category: str | None = None
     user_goal: str
     confidence: float = Field(ge=0, le=1)
+    visible_parts: list[str] = Field(default_factory=list)
+    important_parts: list[str] = Field(default_factory=list)
     important_visible_parts: list[str] = Field(default_factory=list)
     missing_information: list[str] = Field(default_factory=list)
     needs_clarification: bool
@@ -32,17 +35,37 @@ class AnalyzeResponse(BaseModel):
     can_generate_instruction: bool
 
 
+class VisualSpec(BaseModel):
+    main_object: str | None = None
+    scene: str | None = None
+    composition: str | None = None
+    required_elements: list[str] = Field(default_factory=list)
+    action: str | None = None
+    highlight: str | None = None
+    avoid: list[str] = Field(default_factory=list)
+
+
 class InstructionStep(BaseModel):
     step_number: int
     title: str
     description: str
-    visual_prompt: str
+    action_type: str | None = None
+    focus_area: str | None = None
+    camera_angle: str | None = None
+    hand_action: str | None = None
+    visual_highlight: str | None = None
+    state_before: str | None = None
+    state_after: str | None = None
+    visual_spec: VisualSpec | None = None
+    image_prompt: str | None = None
+    visual_prompt: str = ""
 
 
 class GenerateInstructionRequest(BaseModel):
     user_id: int
     image_url: str
     user_goal: str
+    analysis: dict | None = None
     confirmed_details: str | None = None
     session_id: int | None = None
 
@@ -50,15 +73,19 @@ class GenerateInstructionRequest(BaseModel):
 class GenerateInstructionResponse(BaseModel):
     title: str
     short_summary: str
+    suitable_for: str | None = None
     safety_notes: list[str] = Field(default_factory=list)
     steps: list[InstructionStep]
+    extra_sections: list[dict] = Field(default_factory=list)
+    quality_check: dict | None = None
     session_id: int | None = None
 
 
 class GenerateImagesRequest(BaseModel):
     user_id: int
     image_url: str
-    instruction: GenerateInstructionResponse
+    instruction: GenerateInstructionResponse | None = None
+    instruction_plan: GenerateInstructionResponse | None = None
     session_id: int | None = None
 
 
@@ -76,6 +103,7 @@ class CreateCollageRequest(BaseModel):
     title: str
     object_image_url: str
     step_images: list[StepImage]
+    instruction_plan: GenerateInstructionResponse | None = None
     session_id: int | None = None
 
 

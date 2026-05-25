@@ -24,7 +24,10 @@ class ImageGenerationService:
                 image_bytes = self._placeholder_card(step, source_image_url)
             else:
                 try:
-                    image_bytes = openai_service.generate_step_image(source_image_url, step["visual_prompt"])
+                    image_bytes = openai_service.generate_step_image(
+                        source_image_url,
+                        self._step_image_prompt(step),
+                    )
                 except Exception:
                     logger.exception(
                         "OpenAI image generation failed for step %s; using fallback card",
@@ -34,6 +37,28 @@ class ImageGenerationService:
             image_url = storage_service.save_bytes(image_bytes, "generated", ".png")
             results.append({"step_number": step["step_number"], "image_url": image_url})
         return results
+
+    @staticmethod
+    def _step_image_prompt(step: dict) -> str:
+        visual_spec = step.get("visual_spec") or {}
+        return "\n".join(
+            [
+                step.get("image_prompt") or step.get("visual_prompt") or "",
+                f"Цель шага: {step.get('title')} — {step.get('description')}",
+                f"Тип действия: {step.get('action_type')}",
+                f"Фокус: {step.get('focus_area')}",
+                f"Ракурс: {step.get('camera_angle')}",
+                f"Рука/палец: {step.get('hand_action')}",
+                f"Подсветка: {step.get('visual_highlight')}",
+                f"До: {step.get('state_before')}",
+                f"После: {step.get('state_after')}",
+                f"Объект: {visual_spec.get('main_object')}",
+                f"Сцена: {visual_spec.get('scene')}",
+                f"Композиция: {visual_spec.get('composition')}",
+                f"Обязательно сохранить: {', '.join(visual_spec.get('required_elements', []))}",
+                f"Избегать: {', '.join(visual_spec.get('avoid', []))}",
+            ]
+        )
 
     @staticmethod
     def _placeholder_card(step: dict, source_image_url: str | None = None) -> bytes:

@@ -68,6 +68,7 @@ async def generate_and_send_instruction(message: Message, state: FSMContext) -> 
             "title": instruction["title"],
             "object_image_url": image_url,
             "step_images": images["step_images"],
+            "instruction_plan": instruction,
             "session_id": session_id,
         }
     )

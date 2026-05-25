@@ -47,6 +47,9 @@ async def generate_and_send_instruction(message: Message, state: FSMContext) -> 
             "session_id": session_id,
         }
     )
+    if instruction.get("service_error") == "openai_insufficient_quota":
+        await message.answer("Сейчас не получается создать инструкцию. Попробуйте чуть позже.")
+        return
 
     await message.answer(_format_instruction_text(instruction))
 

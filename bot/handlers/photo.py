@@ -82,6 +82,10 @@ async def _identify_and_ask_confirmation(message: Message, state: FSMContext) ->
             "session_id": data.get("session_id"),
         }
     )
+    if analysis.get("service_error") == "openai_insufficient_quota":
+        await message.answer("Сейчас не получается завершить анализ. Попробуйте чуть позже.")
+        await state.set_state(InstructionFlow.waiting_photo)
+        return
     detected_object = analysis.get("product_name") or analysis.get("detected_object") or "предмет на фото"
     match_status = analysis.get("match_status")
     candidates = analysis.get("candidate_models") or []

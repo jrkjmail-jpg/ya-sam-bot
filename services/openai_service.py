@@ -16,8 +16,16 @@ from services.storage_service import storage_service
 logger = logging.getLogger(__name__)
 
 
+class OpenAIQuotaError(RuntimeError):
+    pass
+
+
 def _read_prompt(name: str) -> str:
     return (BASE_DIR / "prompts" / name).read_text(encoding="utf-8")
+
+
+def _is_insufficient_quota(error: Exception) -> bool:
+    return "insufficient_quota" in str(error) or "exceeded your current quota" in str(error).lower()
 
 
 class OpenAIService:
@@ -92,18 +100,23 @@ class OpenAIService:
             "quality": "high",
         }
 
-        response = self.client.responses.create(
-            model=self.settings.openai_text_model,
-            input=[
-                {
-                    "role": "user",
-                    "content": [
-                        {"type": "input_text", "text": f"{style}\n\nСцена шага: {visual_prompt}"},
-                    ],
-                }
-            ],
-            tools=[image_tool],
-        )
+        try:
+            response = self.client.responses.create(
+                model=self.settings.openai_text_model,
+                input=[
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "input_text", "text": f"{style}\n\nСцена шага: {visual_prompt}"},
+                        ],
+                    }
+                ],
+                tools=[image_tool],
+            )
+        except Exception as exc:
+            if _is_insufficient_quota(exc):
+                raise OpenAIQuotaError("OpenAI API quota is insufficient") from exc
+            raise
         for output in response.output:
             if getattr(output, "type", None) == "image_generation_call" and getattr(output, "result", None):
                 return base64.b64decode(output.result)
@@ -131,15 +144,22 @@ class OpenAIService:
                 model=self.settings.openai_text_model,
                 input=input_payload,
             )
-        except Exception:
+        except Exception as exc:
+            if _is_insufficient_quota(exc):
+                raise OpenAIQuotaError("OpenAI API quota is insufficient") from exc
             if not use_web_search:
                 raise
             logger.exception("OpenAI web search analysis failed; retrying without web search")
-            response = self.client.responses.create(
-                model=self.settings.openai_text_model,
-                input=input_payload,
-                text={"format": {"type": "json_object"}},
-            )
+            try:
+                response = self.client.responses.create(
+                    model=self.settings.openai_text_model,
+                    input=input_payload,
+                    text={"format": {"type": "json_object"}},
+                )
+            except Exception as retry_exc:
+                if _is_insufficient_quota(retry_exc):
+                    raise OpenAIQuotaError("OpenAI API quota is insufficient") from retry_exc
+                raise
 
         text = getattr(response, "output_text", None) or ""
         if not text:

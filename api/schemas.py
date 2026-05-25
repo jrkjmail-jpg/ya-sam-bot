@@ -43,6 +43,7 @@ class AnalyzeResponse(BaseModel):
     needs_clarification: bool
     clarification_question: str | None = None
     can_generate_instruction: bool
+    service_error: str | None = None
 
 
 class VisualSpec(BaseModel):
@@ -91,6 +92,7 @@ class GenerateInstructionResponse(BaseModel):
     extra_sections: list[dict] = Field(default_factory=list)
     quality_check: dict | None = None
     session_id: int | None = None
+    service_error: str | None = None
 
 
 class GenerateImagesRequest(BaseModel):

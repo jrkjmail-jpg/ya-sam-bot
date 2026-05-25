@@ -1,8 +1,13 @@
 from __future__ import annotations
 
+import logging
+
 from config.settings import get_settings
-from services.openai_service import openai_service
+from services.openai_service import OpenAIQuotaError, openai_service
 from services.safety import looks_potentially_dangerous
+
+
+logger = logging.getLogger(__name__)
 
 
 class VisionService:
@@ -40,7 +45,11 @@ class VisionService:
             }
         if settings.ai_is_mocked:
             return self._mock_analysis(user_goal)
-        return openai_service.analyze_object(image_url, user_goal)
+        try:
+            return openai_service.analyze_object(image_url, user_goal)
+        except OpenAIQuotaError:
+            logger.exception("OpenAI quota is insufficient during object analysis")
+            return self._quota_unavailable_analysis(user_goal)
 
     @staticmethod
     def _mock_analysis(user_goal: str) -> dict:
@@ -92,6 +101,33 @@ class VisionService:
             "needs_clarification": False,
             "clarification_question": None,
             "can_generate_instruction": True,
+        }
+
+    @staticmethod
+    def _quota_unavailable_analysis(user_goal: str) -> dict:
+        return {
+            "detected_object": "объект на фото",
+            "object_category": "временно недоступно",
+            "brand": None,
+            "model": None,
+            "product_name": "объект на фото",
+            "match_status": "unknown",
+            "exact_match_confidence": 0.0,
+            "candidate_models": [],
+            "object_signature": "анализ временно недоступен",
+            "visual_reference_prompt": "анализ временно недоступен",
+            "real_instruction_summary": "",
+            "source_notes": [],
+            "user_goal": user_goal,
+            "confidence": 0.0,
+            "visible_parts": [],
+            "important_parts": [],
+            "important_visible_parts": [],
+            "missing_information": ["временно недоступен AI-анализ"],
+            "needs_clarification": True,
+            "clarification_question": "Сейчас не получается завершить анализ. Попробуйте чуть позже.",
+            "can_generate_instruction": False,
+            "service_error": "openai_insufficient_quota",
         }
 
 

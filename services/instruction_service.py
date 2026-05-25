@@ -1,9 +1,14 @@
 from __future__ import annotations
 
+import logging
+
 from config.settings import get_settings
-from services.openai_service import openai_service
+from services.openai_service import OpenAIQuotaError, openai_service
 from services.quality_service import quality_service
 from services.safety import looks_potentially_dangerous
+
+
+logger = logging.getLogger(__name__)
 
 
 class InstructionService:
@@ -20,7 +25,11 @@ class InstructionService:
         if settings.ai_is_mocked:
             return self._normalize_instruction(self._mock_instruction(user_goal), user_goal, analysis)
 
-        instruction = openai_service.generate_instruction(image_url, user_goal, confirmed_details, analysis)
+        try:
+            instruction = openai_service.generate_instruction(image_url, user_goal, confirmed_details, analysis)
+        except OpenAIQuotaError:
+            logger.exception("OpenAI quota is insufficient during instruction generation")
+            return self._quota_unavailable_instruction(user_goal)
         instruction = self._normalize_instruction(instruction, user_goal, analysis)
         return instruction
 
@@ -163,6 +172,45 @@ class InstructionService:
                 },
             ],
             "extra_sections": [],
+        }
+
+    @staticmethod
+    def _quota_unavailable_instruction(user_goal: str) -> dict:
+        return {
+            "title": "Сейчас не получается создать инструкцию",
+            "short_summary": "AI-сервис временно недоступен из-за лимита. Попробуйте позже.",
+            "instruction_target": "объект",
+            "object_reference": {},
+            "suitable_for": "Повторите позже",
+            "safety_notes": [],
+            "steps": [
+                {
+                    "step_number": 1,
+                    "title": "Повторите позже",
+                    "description": "Сейчас не получается завершить генерацию. Попробуйте еще раз позже.",
+                    "action_type": "retry",
+                    "focus_area": "сервис",
+                    "camera_angle": "нейтральная карточка",
+                    "hand_action": "нет",
+                    "visual_highlight": "мягкая подсветка статуса",
+                    "state_before": "запрос отправлен",
+                    "state_after": "повторить позже",
+                    "visual_spec": {
+                        "main_object": "нейтральная карточка ожидания",
+                        "scene": "светлый фон",
+                        "composition": "центрированная карточка",
+                        "required_elements": ["мягкая подсветка статуса"],
+                        "action": "показать, что нужно повторить позже",
+                        "highlight": "мягкий фиолетовый маркер",
+                        "avoid": ["не показывать ошибочный объект"],
+                    },
+                    "image_prompt": "Нейтральная карточка «Я сам»: генерация временно недоступна, мягкий фиолетовый маркер, светлый фон.",
+                    "visual_prompt": "Нейтральная карточка ожидания.",
+                }
+            ],
+            "extra_sections": [],
+            "quality_check": {"is_good": False, "problems": ["openai_insufficient_quota"], "steps_to_regenerate": []},
+            "service_error": "openai_insufficient_quota",
         }
 
 

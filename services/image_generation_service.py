@@ -4,7 +4,7 @@ from io import BytesIO
 import logging
 from textwrap import wrap
 
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw
 
 from config.settings import get_settings
 from services.openai_service import openai_service
@@ -38,42 +38,68 @@ class ImageGenerationService:
     @staticmethod
     def _placeholder_card(step: dict, source_image_url: str | None = None) -> bytes:
         width, height = 1024, 1024
-        image = Image.new("RGB", (width, height), "#101216")
+        image = Image.new("RGB", (width, height), "#f7f5ff")
         draw = ImageDraw.Draw(image)
-        font_title = load_font(52, bold=True)
-        font_body = load_font(32)
-        font_small = load_font(24)
+        font_title = load_font(50, bold=True)
+        font_body = load_font(28)
+        font_small = load_font(22)
+        font_brand = load_font(26, bold=True)
 
-        draw.rounded_rectangle((56, 56, 968, 968), radius=36, fill="#1b2028", outline="#2dd4ff", width=3)
-        draw.ellipse((78, 78, 170, 170), fill="#ff8a1f")
-        draw.text((112, 103), str(step["step_number"]), fill="#ffffff", font=font_title, anchor="mm")
-        draw.text((205, 86), "Я сам", fill="#7de7ff", font=font_small)
-        draw.text((205, 124), step["title"], fill="#ffffff", font=font_title)
+        draw.rounded_rectangle((46, 46, 978, 978), radius=38, fill="#ffffff", outline="#ebe7f7", width=3)
+        draw.ellipse((76, 76, 148, 148), fill="#7c3aed")
+        draw.text((112, 112), str(step["step_number"]), fill="#ffffff", font=font_brand, anchor="mm")
+        draw.text((174, 78), "Я сам", fill="#7c3aed", font=font_small)
+        draw.text((174, 116), step["title"][:34], fill="#161827", font=font_title)
 
-        object_box = (170, 285, 854, 660)
-        draw.rounded_rectangle(object_box, radius=32, fill="#262d38", outline="#364150", width=2)
+        object_box = (96, 230, 928, 682)
+        draw.rounded_rectangle(object_box, radius=34, fill="#fbfbff", outline="#efeafb", width=2)
 
         source_image = ImageGenerationService._load_source_preview(source_image_url)
         if source_image:
-            source_image.thumbnail((640, 330))
+            source_image.thumbnail((770, 410))
             paste_x = 512 - source_image.width // 2
-            paste_y = 472 - source_image.height // 2
+            paste_y = 456 - source_image.height // 2
             image.paste(source_image, (paste_x, paste_y))
-            draw.rounded_rectangle(object_box, radius=32, outline="#364150", width=2)
+            draw.rounded_rectangle(object_box, radius=34, outline="#efeafb", width=2)
+        else:
+            draw.rounded_rectangle((230, 315, 794, 590), radius=34, fill="#f0eef8", outline="#ddd6fe", width=2)
 
-        draw.line((270, 510, 720, 510), fill="#ff8a1f", width=14)
-        draw.polygon([(720, 472), (805, 510), (720, 548)], fill="#ff8a1f")
-        draw.ellipse((410, 395, 615, 600), outline="#2dd4ff", width=8)
-        draw.text((512, 690), "важная зона выделена", fill="#b8c4d6", font=font_small, anchor="mm")
+        ImageGenerationService._draw_instruction_marks(draw, step.get("step_number", 1))
 
-        y = 780
-        for line in wrap(step["description"], width=43)[:4]:
-            draw.text((96, y), line, fill="#e8edf5", font=font_body)
-            y += 44
+        draw.rounded_rectangle((96, 724, 928, 922), radius=24, fill="#faf9ff", outline="#eee9fb", width=2)
+        y = 752
+        for line in wrap(step["description"], width=50)[:5]:
+            draw.text((126, y), line, fill="#232333", font=font_body)
+            y += 38
 
         buffer = BytesIO()
         image.save(buffer, format="PNG")
         return buffer.getvalue()
+
+    @staticmethod
+    def _draw_instruction_marks(draw: ImageDraw.ImageDraw, step_number: int) -> None:
+        purple = "#8b5cf6"
+        violet = "#6d28d9"
+        blue = "#38bdf8"
+        orange = "#fb923c"
+
+        if step_number % 3 == 1:
+            draw.arc((350, 300, 710, 620), start=25, end=330, fill=purple, width=10)
+            draw.polygon([(700, 374), (762, 355), (726, 410)], fill=purple)
+            for x, y in [(770, 270), (810, 300), (790, 345)]:
+                draw.line((x, y, x + 38, y - 24), fill=violet, width=7)
+        elif step_number % 3 == 2:
+            draw.line((235, 560, 760, 560), fill=orange, width=12)
+            draw.polygon([(760, 520), (838, 560), (760, 600)], fill=orange)
+            draw.ellipse((407, 430, 617, 640), outline=blue, width=8)
+            for y in (358, 394, 430):
+                draw.arc((735, y, 860, y + 115), start=300, end=60, fill=purple, width=8)
+        else:
+            draw.ellipse((305, 298, 715, 650), outline=purple, width=10)
+            draw.line((690, 330, 820, 250), fill=purple, width=10)
+            draw.polygon([(820, 250), (790, 312), (754, 258)], fill=purple)
+            for x in (210, 250, 290):
+                draw.line((x, 300, x - 34, 260), fill=violet, width=7)
 
     @staticmethod
     def _load_source_preview(source_image_url: str | None) -> Image.Image | None:

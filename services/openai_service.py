@@ -69,6 +69,16 @@ class OpenAIService:
             raise RuntimeError("OpenAI API key is not configured")
 
         style = _read_prompt("image_prompt_style.txt")
+        image_tool = {
+            "type": "image_generation",
+            "action": "auto",
+            "model": self.settings.openai_image_model,
+            "size": "1024x1024",
+            "quality": "high",
+        }
+        if self.settings.openai_image_model not in {"gpt-image-2", "gpt-image-2-2026-04-21"}:
+            image_tool["input_fidelity"] = "high"
+
         response = self.client.responses.create(
             model=self.settings.openai_text_model,
             input=[
@@ -80,16 +90,7 @@ class OpenAIService:
                     ],
                 }
             ],
-            tools=[
-                {
-                    "type": "image_generation",
-                    "action": "auto",
-                    "model": self.settings.openai_image_model,
-                    "size": "1024x1024",
-                    "quality": "high",
-                    "input_fidelity": "high",
-                }
-            ],
+            tools=[image_tool],
         )
         for output in response.output:
             if getattr(output, "type", None) == "image_generation_call" and getattr(output, "result", None):

@@ -2,7 +2,7 @@ from io import BytesIO
 
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
-from aiogram.types import Message
+from aiogram.types import Message, ReplyKeyboardRemove
 
 from bot.api_client import backend_client
 from bot.handlers.instruction import generate_and_send_instruction
@@ -12,10 +12,40 @@ from bot.states import InstructionFlow
 router = Router()
 
 
+@router.message(InstructionFlow.waiting_object_confirmation, F.text)
+async def handle_object_confirmation(message: Message, state: FSMContext) -> None:
+    answer = message.text.strip().lower()
+    if answer.startswith("да"):
+        await state.set_state(InstructionFlow.waiting_goal)
+        await message.answer("Отлично. Что вы хотите сделать с этим?", reply_markup=ReplyKeyboardRemove())
+        return
+
+    if "не знаю" in answer:
+        await state.update_data(confirmed_details="Пользователь не уверен, что это за объект. Не делать рискованных предположений.")
+        await state.set_state(InstructionFlow.waiting_goal)
+        await message.answer(
+            "Хорошо. Тогда я буду осторожнее и не стану выдумывать детали. Что вы хотите сделать?",
+            reply_markup=ReplyKeyboardRemove(),
+        )
+        return
+
+    if answer.startswith("нет"):
+        await state.set_state(InstructionFlow.waiting_photo)
+        await state.update_data(image_url=None, image_urls=[], session_id=None, detected_object=None)
+        await message.answer(
+            "Понял. Пришлите фото именно того объекта, для которого нужна инструкция. Можно отправить несколько фото сразу.",
+            reply_markup=ReplyKeyboardRemove(),
+        )
+        return
+
+    await message.answer("Выберите, пожалуйста: «Да, это он», «Нет, другой объект» или «Я не знаю».")
+
+
 @router.message(InstructionFlow.waiting_goal, F.text)
 async def handle_goal(message: Message, state: FSMContext) -> None:
     data = await state.get_data()
     image_url = data.get("image_url")
+    image_urls = data.get("image_urls") or ([image_url] if image_url else [])
     session_id = data.get("session_id")
     if not image_url or not session_id:
         await state.set_state(InstructionFlow.waiting_photo)
@@ -29,6 +59,7 @@ async def handle_goal(message: Message, state: FSMContext) -> None:
         {
             "user_id": message.from_user.id,
             "image_url": image_url,
+            "image_urls": image_urls,
             "user_goal": user_goal,
             "session_id": session_id,
         }

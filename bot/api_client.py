@@ -54,6 +54,12 @@ class BackendClient:
         except httpx.HTTPError:
             return self._local_analyze(payload)
 
+    async def identify_object(self, payload: dict) -> dict:
+        try:
+            return await self._post("/identify-object", payload, timeout=120)
+        except httpx.HTTPError:
+            return self._local_identify_object(payload)
+
     async def generate_instruction(self, payload: dict) -> dict:
         try:
             return await self._post("/generate-instruction", payload, timeout=180)
@@ -106,7 +112,8 @@ class BackendClient:
             return {"image_url": image_url, "session_id": session_id}
 
     def _local_analyze(self, payload: dict) -> dict:
-        analysis = vision_service.analyze(payload["image_url"], payload["user_goal"])
+        image_input = payload.get("image_urls") or payload["image_url"]
+        analysis = vision_service.analyze(image_input, payload["user_goal"])
         session_id = payload.get("session_id")
         if session_id:
             with SessionLocal() as db:
@@ -121,6 +128,21 @@ class BackendClient:
                     detected_object=analysis.get("detected_object"),
                     confidence=analysis.get("confidence"),
                     user_goal=payload["user_goal"],
+                )
+        return analysis
+
+    def _local_identify_object(self, payload: dict) -> dict:
+        image_urls = payload.get("image_urls") or ([payload["image_url"]] if payload.get("image_url") else [])
+        analysis = vision_service.identify(image_urls)
+        session_id = payload.get("session_id")
+        if session_id:
+            with SessionLocal() as db:
+                update_instruction_session(
+                    db,
+                    session_id,
+                    status=SessionStatus.waiting_goal.value,
+                    detected_object=analysis.get("detected_object"),
+                    confidence=analysis.get("confidence"),
                 )
         return analysis
 

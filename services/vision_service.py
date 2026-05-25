@@ -6,7 +6,13 @@ from services.safety import looks_potentially_dangerous
 
 
 class VisionService:
-    def analyze(self, image_url: str, user_goal: str) -> dict:
+    def identify(self, image_urls: list[str]) -> dict:
+        return self.analyze(
+            image_urls,
+            "Определи главный объект, для которого пользователь хочет получить инструкцию. Пользователь еще не написал действие.",
+        )
+
+    def analyze(self, image_url: str | list[str], user_goal: str) -> dict:
         settings = get_settings()
         if looks_potentially_dangerous(user_goal):
             return {

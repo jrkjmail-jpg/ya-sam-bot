@@ -28,18 +28,18 @@ class OpenAIService:
             return f"data:image/jpeg;base64,{encoded}"
         return image_url
 
-    def analyze_object(self, image_url: str, user_goal: str) -> dict[str, Any]:
+    def analyze_object(self, image_url: str | list[str], user_goal: str) -> dict[str, Any]:
         if not self.client:
             raise RuntimeError("OpenAI API key is not configured")
 
         prompt = _read_prompt("analyze_object_prompt.txt")
+        image_urls = image_url if isinstance(image_url, list) else [image_url]
+        content = [{"type": "input_text", "text": f"{prompt}\n\nЦель пользователя: {user_goal}"}]
+        content.extend({"type": "input_image", "image_url": self._image_input(url)} for url in image_urls)
         input_payload = [
             {
                 "role": "user",
-                "content": [
-                    {"type": "input_text", "text": f"{prompt}\n\nЦель пользователя: {user_goal}"},
-                    {"type": "input_image", "image_url": self._image_input(image_url)},
-                ],
+                "content": content,
             }
         ]
         return self._json_response(input_payload, "yasam_object_analysis")

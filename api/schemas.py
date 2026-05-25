@@ -9,7 +9,15 @@ class UploadImageResponse(BaseModel):
 class AnalyzeRequest(BaseModel):
     user_id: int
     image_url: str
+    image_urls: list[str] | None = None
     user_goal: str
+    session_id: int | None = None
+
+
+class IdentifyObjectRequest(BaseModel):
+    user_id: int
+    image_url: str | None = None
+    image_urls: list[str] = Field(default_factory=list)
     session_id: int | None = None
 
 

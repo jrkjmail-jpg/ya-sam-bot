@@ -19,8 +19,13 @@ class ImageGenerationService:
     def generate_step_images(self, source_image_url: str, steps: list[dict]) -> list[dict]:
         settings = get_settings()
         results: list[dict] = []
-        for step in steps:
-            if settings.ai_is_mocked:
+        for index, step in enumerate(steps, start=1):
+            should_use_ai_image = (
+                settings.enable_ai_step_images
+                and not settings.ai_is_mocked
+                and index <= max(0, settings.max_ai_step_images)
+            )
+            if not should_use_ai_image:
                 image_bytes = self._placeholder_card(step)
             else:
                 try:

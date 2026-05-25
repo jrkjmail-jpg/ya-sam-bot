@@ -97,7 +97,7 @@ class OpenAIService:
             "action": "auto",
             "model": self.settings.openai_image_model,
             "size": "1024x1024",
-            "quality": "high",
+            "quality": self.settings.openai_image_quality,
         }
 
         try:

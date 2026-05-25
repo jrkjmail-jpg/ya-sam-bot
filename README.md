@@ -29,6 +29,9 @@ BOT_TOKEN=
 OPENAI_API_KEY=ключ_openai
 DATABASE_URL=sqlite:///./yasam.db
 API_BASE_URL=http://localhost:8000
+ENABLE_AI_STEP_IMAGES=false
+MAX_AI_STEP_IMAGES=0
+OPENAI_IMAGE_QUALITY=low
 ```
 
 Если хостинг задает переменную `PORT`, бот автоматически использует этот порт для локальной связи с API.
@@ -40,6 +43,8 @@ USE_MOCK_AI=true
 ```
 
 Тогда бот пройдет полный сценарий с тестовыми шагами и сгенерирует placeholder-карточки.
+
+По умолчанию отдельные AI-картинки шагов выключены: бот делает анализ и план через OpenAI, а карточки и коллаж собирает локально. Это сильно дешевле для MVP.
 
 ## Запуск FastAPI
 

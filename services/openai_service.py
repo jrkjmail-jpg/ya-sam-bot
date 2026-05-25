@@ -76,8 +76,6 @@ class OpenAIService:
             "size": "1024x1024",
             "quality": "high",
         }
-        if self.settings.openai_image_model not in {"gpt-image-2", "gpt-image-2-2026-04-21"}:
-            image_tool["input_fidelity"] = "high"
 
         response = self.client.responses.create(
             model=self.settings.openai_text_model,

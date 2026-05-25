@@ -87,41 +87,6 @@ class OpenAIService:
         ]
         return self._json_response(input_payload, "yasam_instruction")
 
-    def generate_step_image(self, source_image_url: str, visual_prompt: str) -> bytes:
-        if not self.client:
-            raise RuntimeError("OpenAI API key is not configured")
-
-        style = f"{_read_prompt('image_prompt_style.txt')}\n\n{_read_prompt('step_image_prompt.txt')}"
-        image_tool = {
-            "type": "image_generation",
-            "action": "auto",
-            "model": self.settings.openai_image_model,
-            "size": "1024x1024",
-            "quality": self.settings.openai_image_quality,
-        }
-
-        try:
-            response = self.client.responses.create(
-                model=self.settings.openai_text_model,
-                input=[
-                    {
-                        "role": "user",
-                        "content": [
-                            {"type": "input_text", "text": f"{style}\n\nСцена шага: {visual_prompt}"},
-                        ],
-                    }
-                ],
-                tools=[image_tool],
-            )
-        except Exception as exc:
-            if _is_insufficient_quota(exc):
-                raise OpenAIQuotaError("OpenAI API quota is insufficient") from exc
-            raise
-        for output in response.output:
-            if getattr(output, "type", None) == "image_generation_call" and getattr(output, "result", None):
-                return base64.b64decode(output.result)
-        raise RuntimeError("OpenAI did not return a generated image")
-
     def _json_response(
         self,
         input_payload: list[dict[str, Any]],

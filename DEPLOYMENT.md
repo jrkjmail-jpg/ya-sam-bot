@@ -30,9 +30,6 @@ BOT_TOKEN=123456:telegram_token
 OPENAI_API_KEY=sk-...
 DATABASE_URL=postgresql+psycopg://user:password@host:5432/db
 API_BASE_URL=https://your-api-domain.com
-OPENAI_IMAGE_QUALITY=low
-ENABLE_AI_STEP_IMAGES=false
-MAX_AI_STEP_IMAGES=0
 USE_MOCK_AI=false
 ```
 
@@ -48,18 +45,9 @@ STORAGE_BUCKET=yasam
 
 ```env
 OPENAI_TEXT_MODEL=gpt-5.5
-OPENAI_IMAGE_MODEL=gpt-image-2
-OPENAI_IMAGE_QUALITY=low
 ```
 
-Экономный режим по умолчанию:
-
-```env
-ENABLE_AI_STEP_IMAGES=false
-MAX_AI_STEP_IMAGES=0
-```
-
-В этом режиме OpenAI не генерирует отдельные картинки шагов. Бот делает AI-анализ и план, а карточки и коллаж собирает локально кодом.
+OpenAI-генерация отдельных картинок шагов полностью отключена в коде. Бот делает AI-анализ и план, а карточки и коллаж собирает локально кодом.
 
 Для первого smoke test можно временно включить:
 
